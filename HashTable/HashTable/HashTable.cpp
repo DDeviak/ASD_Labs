@@ -26,14 +26,7 @@ public:
 		}
 		else
 		{
-			if ((*temp)->value == nullptr) {
-				(*temp)->value = new Value(v);
-				count_++;
-			}
-			else 
-			{
-				throw "Item already exists in Table";
-			}
+			throw "Item already exists in Table";
 		}
 	}
 	Value* Find(const Key& k) {
@@ -43,7 +36,7 @@ public:
 	}
 	bool Replace(const Key& k, const Value& v) {
 		Node** temp = FindNode(Hash(k), &root_);
-		if ((*temp) != nullptr && (*temp)->value != nullptr)
+		if ((*temp) != nullptr)
 		{
 			delete (*temp)->value;
 			(*temp)->value = new Value(v);
@@ -55,17 +48,48 @@ public:
 		}
 	}
 	void Remove(const Key &k) {
-		Node** temp = FindNode(Hash(k), &root_);
-		if ((*temp) != nullptr)
+		Node** node_to_remove = FindNode(Hash(k), &root_);
+		if ((*node_to_remove) != nullptr)
 		{
-			if ((*temp)->left != nullptr || (*temp)->right != nullptr) {
-				delete (*temp)->value;
-				(*temp)->value = nullptr;
+			if ((*node_to_remove)->left != nullptr){
+				Node** current = &(*node_to_remove)->left;
+				while ((*current)->right!=nullptr)
+				{
+					current = &(*current)->right;
+				}
+				Node* temp = *current;
+				
+				*current = (*current)->left;
+				
+				temp->left = (*node_to_remove)->left;
+				temp->right = (*node_to_remove)->right;
+
+				delete (*node_to_remove);
+
+				*node_to_remove = temp;
+			}
+			else if ((*node_to_remove)->right != nullptr)
+			{
+				Node** current = &(*node_to_remove)->right;
+				while ((*current)->left != nullptr)
+				{
+					current = &(*current)->left;
+				}
+				Node* temp = *current;
+
+				*current = (*current)->right;
+
+				temp->left = (*node_to_remove)->left;
+				temp->right = (*node_to_remove)->right;
+
+				delete (*node_to_remove);
+
+				*node_to_remove = temp;
 			}
 			else
 			{
-				delete (*temp);
-				(*temp) = nullptr;
+				delete (*node_to_remove);
+				(*node_to_remove) = nullptr;
 			}
 			count_--;
 		}
