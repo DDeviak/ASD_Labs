@@ -14,74 +14,88 @@ public:
 	~Table()
 	{
 		Clear();
-		delete first_;
 	}
 
-	void Add(Key k, Value v) {
-		Row* current = first_;
-		while (current->next != nullptr)
+	void Add(const Key& k, const Value& v) {
+		Node** temp = FindNode(k, &root_);
+		if ((*temp) == nullptr)
 		{
-			current = current->next;
+			(*temp) = new Node(k, v);
+			count_++;
 		}
-		current->next = new Row();
-		current->key = k;
-		current->value = v;
-		count_++;
-	}
-	Value* Find(Key k) {
-		Row* current = first_;
-		while (current->next != nullptr)
+		else
 		{
-			if (current->key == k)return &(current->value);
-			current = current->next;
+			throw "Item already exists in Table";
 		}
-		return nullptr;
 	}
-	bool Replace(Key k, Value v) {
-		Row* current = first_;
-		while (current->next != nullptr)
+	Value* Find(const Key& k) {
+		Node** temp = FindNode(k, &root_);
+		if (*temp != nullptr) return (*temp)->value;
+		else return nullptr;
+	}
+	bool Replace(const Key& k, const Value& v) {
+		Node** temp = FindNode(k, &root_);
+		if ((*temp) != nullptr)
 		{
-			if (current->key == k) {
-				current->value = v;
-				return true;
+			delete (*temp)->value;
+			(*temp)->value = new Value(v);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	void Remove(const Key& k) {
+		Node** node_to_remove = FindNode(k, &root_);
+		if ((*node_to_remove) != nullptr)
+		{
+			if ((*node_to_remove)->left != nullptr) {
+				Node** current = &(*node_to_remove)->left;
+				while ((*current)->right != nullptr)
+				{
+					current = &(*current)->right;
+				}
+				Node* temp = *current;
+
+				*current = (*current)->left;
+
+				temp->left = (*node_to_remove)->left;
+				temp->right = (*node_to_remove)->right;
+
+				delete (*node_to_remove);
+
+				*node_to_remove = temp;
 			}
-			current = current->next;
-		}
-		return false;
-	}
-	void Remove(Key k) {
-		if (first_->key == k)
-		{
-			Row* temp = first_;
-			first_ = first_->next;
-			delete temp;
-			count_--;
-			return;
-		}
-
-		Row* previous = first_;
-		Row* current = previous->next;
-		while (current->next != nullptr)
-		{
-			if (current->key == k)
+			else if ((*node_to_remove)->right != nullptr)
 			{
-				previous->next = current->next;
-				delete current;
-				count_--;
-				return;
+				Node** current = &(*node_to_remove)->right;
+				while ((*current)->left != nullptr)
+				{
+					current = &(*current)->left;
+				}
+				Node* temp = *current;
+
+				*current = (*current)->right;
+
+				temp->left = (*node_to_remove)->left;
+				temp->right = (*node_to_remove)->right;
+
+				delete (*node_to_remove);
+
+				*node_to_remove = temp;
 			}
-			previous = current;
-			current = previous->next;
+			else
+			{
+				delete (*node_to_remove);
+				(*node_to_remove) = nullptr;
+			}
+			count_--;
 		}
 	}
 	void Clear() {
-		Row* temp;
-		while (first_->next != nullptr)
-		{
-			temp = first_;
-			first_ = first_->next;
-			delete temp;
-		}
+		if (root_ != nullptr) root_->Clear();
+		root_ = nullptr;
 		count_ = 0;
 	}
 	size_t GetCount() {
@@ -89,28 +103,65 @@ public:
 	}
 
 	void Output(ostream& out) {
-		Row* current = first_;
-		while (current->next != nullptr)
-		{
-			out << current->key << " " << current->value << endl;
-			current = current->next;
-		}
+		out << count_ << endl;
+		root_->Output(out);
 	}
 
 private:
-	struct Row
+	struct Node
 	{
+		Node(Key k, Value v) : key(k) {
+			value = new Value(v);
+		}
+		~Node() {
+			if (value != nullptr) {
+				delete value;
+				value = nullptr;
+			}
+		}
 		Key key;
-		Value value;
+		Value* value = nullptr;
 
-		Row* next = nullptr;
+		Node* left = nullptr;
+		Node* right = nullptr;
+
+		void Clear() {
+			if (left != nullptr) {
+				left->Clear();
+			}
+			if (right != nullptr) {
+				right->Clear();
+			}
+			delete this;
+		}
+		void Output(ostream& out) {
+			if (left != nullptr) {
+				left->Output(out);
+			}
+			out << key << " " << *value << endl;
+			if (right != nullptr) {
+				right->Output(out);
+			}
+		}
 	};
-
-	Row* first_ = new Row();
-
+	Node* root_ = nullptr;
 	size_t count_ = 0;
-};
 
+	Node** FindNode(const Key& key, Node** root) {
+		if (*root == nullptr || (*root)->key == key) {
+			return root;
+		}
+
+		if ((*root)->key > key)
+		{
+			return FindNode(key, &(*root)->left);
+		}
+		else if ((*root)->key < key)
+		{
+			return FindNode(key, &(*root)->right);
+		}
+	}
+};
 
 TEST_CASE("Testing Table class") {
 	Table<string, string> table;
