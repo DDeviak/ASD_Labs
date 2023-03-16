@@ -7,21 +7,20 @@
 using namespace std;
 
 template <class Key, class Value>
-class HashTable
+class Table
 {
 public:
-	HashTable() {}
-	~HashTable()
+	Table() {}
+	~Table()
 	{
 		Clear();
 	}
 
-	void Add(const Key &k, const Value &v) {
-		int h = Hash(k);
-		Node** temp = FindNode(h, &root_);
-		if ((*temp) == nullptr) 
+	void Add(const Key& k, const Value& v) {
+		Node** temp = FindNode(k, &root_);
+		if ((*temp) == nullptr)
 		{
-			(*temp) = new Node(h, v);
+			(*temp) = new Node(k, v);
 			count_++;
 		}
 		else
@@ -30,12 +29,12 @@ public:
 		}
 	}
 	Value* Find(const Key& k) {
-		Node** temp = FindNode(Hash(k), &root_);
+		Node** temp = FindNode(k, &root_);
 		if (*temp != nullptr) return (*temp)->value;
 		else return nullptr;
 	}
 	bool Replace(const Key& k, const Value& v) {
-		Node** temp = FindNode(Hash(k), &root_);
+		Node** temp = FindNode(k, &root_);
 		if ((*temp) != nullptr)
 		{
 			delete (*temp)->value;
@@ -47,20 +46,20 @@ public:
 			return false;
 		}
 	}
-	void Remove(const Key &k) {
-		Node** node_to_remove = FindNode(Hash(k), &root_);
+	void Remove(const Key& k) {
+		Node** node_to_remove = FindNode(k, &root_);
 		if ((*node_to_remove) != nullptr)
 		{
-			if ((*node_to_remove)->left != nullptr){
+			if ((*node_to_remove)->left != nullptr) {
 				Node** current = &(*node_to_remove)->left;
-				while ((*current)->right!=nullptr)
+				while ((*current)->right != nullptr)
 				{
 					current = &(*current)->right;
 				}
 				Node* temp = *current;
-				
+
 				*current = (*current)->left;
-				
+
 				temp->left = (*node_to_remove)->left;
 				temp->right = (*node_to_remove)->right;
 
@@ -104,14 +103,14 @@ public:
 	}
 
 	void Output(ostream& out) {
-		out << count_ << endl;
-		root_->Output(out);
+		//out << count_ << endl;
+		if (root_ != nullptr) root_->Output(out);
 	}
 
 private:
 	struct Node
 	{
-		Node(int h,Value v) : hash(h) {
+		Node(Key k, Value v) : key(k) {
 			value = new Value(v);
 		}
 		~Node() {
@@ -120,7 +119,7 @@ private:
 				value = nullptr;
 			}
 		}
-		int hash;
+		Key key;
 		Value* value = nullptr;
 
 		Node* left = nullptr;
@@ -135,11 +134,11 @@ private:
 			}
 			delete this;
 		}
-		void Output(ostream &out) {
+		void Output(ostream& out) {
 			if (left != nullptr) {
 				left->Output(out);
 			}
-			out << hash << " " << *value << endl;
+			out << key << " " << *value << endl;
 			if (right != nullptr) {
 				right->Output(out);
 			}
@@ -147,6 +146,83 @@ private:
 	};
 	Node* root_ = nullptr;
 	size_t count_ = 0;
+
+	Node** FindNode(const Key& key, Node** root) {
+		if (*root == nullptr || (*root)->key == key) {
+			return root;
+		}
+
+		if ((*root)->key > key)
+		{
+			return FindNode(key, &(*root)->left);
+		}
+		else if ((*root)->key < key)
+		{
+			return FindNode(key, &(*root)->right);
+		}
+	}
+};
+
+template <class Key, class Value>
+class HashTable
+{
+public:
+	HashTable(size_t possible_size = 10) : buckets_count_(possible_size)
+	{
+		buckets = new Table<Key, Value>*[buckets_count_]();
+		for (size_t i = 0; i < buckets_count_; i++)
+		{
+			buckets[i] = new Table<Key, Value>();
+		}
+	}
+	~HashTable()
+	{
+		for (size_t i = 0; i < buckets_count_; i++)
+		{
+			buckets[i]->Clear();
+			delete buckets[i];
+		}
+		delete buckets;
+		count_ = 0;
+	}
+
+	void Add(const Key &k, const Value &v) {
+		buckets[Hash(k)]->Add(k, v);
+		count_++;
+	}
+	Value* Find(const Key& k) {
+		return buckets[Hash(k)]->Find(k);
+	}
+	bool Replace(const Key& k, const Value& v) {
+		return buckets[Hash(k)]->Replace(k, v);
+	}
+	void Remove(const Key &k) {
+		buckets[Hash(k)]->Remove(k);
+		count_--;
+	}
+	void Clear() {
+		for (size_t i = 0; i < buckets_count_; i++)
+		{
+			buckets[i]->Clear();
+		}
+		count_ = 0;
+	}
+	size_t GetCount() {
+		return count_;
+	}
+
+	void Output(ostream& out) {
+		out << count_ << endl;
+		for (size_t i = 0; i < buckets_count_; i++)
+		{
+			buckets[i]->Output(out);
+		}
+	}
+
+private:
+	size_t buckets_count_ = 0;
+	size_t count_ = 0;
+	Table<Key, Value>** buckets = nullptr;
 
 	int Hash(const Key& key) {
 		stringstream ss;
@@ -158,22 +234,7 @@ private:
 			t += s[i] * (i + 1);
 		}
 		srand(t);
-		return rand()-rand();
-	}
-
-	Node** FindNode(const int &hash, Node** root) {
-		if (*root == nullptr || (*root)->hash == hash) {
-			return root;
-		}
-		
-		if ((*root)->hash > hash) 
-		{
-			return FindNode(hash, &(*root)->left);
-		}
-		else if ((*root)->hash < hash)
-		{
-			return FindNode(hash, &(*root)->right);
-		}
+		return (rand() - rand()) % buckets_count_;
 	}
 };
 
