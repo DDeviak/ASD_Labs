@@ -24,7 +24,7 @@ public:
 	}
 
 	bool Dequeue() {
-		if (is_empty())return false;
+		if (IsEmpty())return false;
 
 		Item* temp = head_;
 		head_ = head_->next;
@@ -64,7 +64,7 @@ private:
 	size_t size_ = 0;
 };
 
-template <class Value>
+template <class T>
 class PriorityQueue
 {
 public:
@@ -72,20 +72,109 @@ public:
 	~PriorityQueue() {
 		Clear();
 	}
-	void Add(const Value& v) {
-		Node** temp = FindNode(v, &root_);
-		if ((*temp) == nullptr)
-		{
-			(*temp) = new Node(v);
-			count_++;
+
+	T PeekMin() {
+		if (IsEmpty()) {
+			throw underflow_error("Unable to get min of the empty queue");
 		}
-		else
+		Node* current = root_;
+		while (current->left != nullptr)
 		{
-			throw "Item already exists in Table";
+			current = current->left;
 		}
+		return current->value;
 	}
-	void Remove(const Value& v) {
-		Node** node_to_remove = FindNode(v, &root_);
+	bool PopMin() {
+		if (IsEmpty()) {
+			return false;
+		}
+		Node** current = &root_;
+		while ((*current)->left != nullptr)
+		{
+			current = &(*current)->left;
+		}
+		Remove(current);
+		return true;
+	}
+
+	T PeekMax() {
+		if (IsEmpty()) {
+			throw underflow_error("Unable to get min of the empty queue");
+		}
+		Node* current = root_;
+		while (current->right != nullptr)
+		{
+			current = current->right;
+		}
+		return current->value;
+	}
+	bool PopMax() {
+		if (IsEmpty()) {
+			return false;
+		}
+		Node** current = &root_;
+		while ((*current)->right != nullptr)
+		{
+			current = &(*current)->right;
+		}
+		Remove(current);
+		return true;
+	}
+
+	void Enqueue(const T& v) {
+		Node** temp = FindNode(v, &root_);
+		
+		(*temp) = new Node(v);
+		count_++;
+	}
+	
+	void Clear() {
+		if (root_ != nullptr) root_->Clear();
+		root_ = nullptr;
+		count_ = 0;
+	}
+
+	size_t GetCount() {
+		return count_;
+	}
+
+	bool IsEmpty() {
+		return count_ == 0;
+	}
+
+private:
+	struct Node
+	{
+		Node(T v) : value(v) {}
+		~Node() {}
+		T value;
+
+		Node* left = nullptr;
+		Node* right = nullptr;
+
+		void Clear() {
+			if (left != nullptr) {
+				left->Clear();
+			}
+			if (right != nullptr) {
+				right->Clear();
+			}
+			delete this;
+		}
+		void Output(ostream& out) {
+			if (left != nullptr) {
+				left->Output(out);
+			}
+			out << *value << endl;
+			if (right != nullptr) {
+				right->Output(out);
+			}
+		}
+	};
+	Node* root_ = nullptr;
+	size_t count_ = 0;
+
+	void Remove(Node** node_to_remove) {
 		if ((*node_to_remove) != nullptr)
 		{
 			if ((*node_to_remove)->left != nullptr) {
@@ -131,76 +220,117 @@ public:
 			count_--;
 		}
 	}
-	void Clear() {
-		if (root_ != nullptr) root_->Clear();
-		root_ = nullptr;
-		count_ = 0;
-	}
-	size_t GetCount() {
-		return count_;
-	}
 
-	void Output(ostream& out) {
-		out << count_ << endl;
-		root_->Output(out);
-	}
-
-private:
-	struct Node
-	{
-		Node(Key k, Value v) : key(k) {
-			value = new Value(v);
-		}
-		~Node() {
-			if (value != nullptr) {
-				delete value;
-				value = nullptr;
-			}
-		}
-		Key key;
-		Value* value = nullptr;
-
-		Node* left = nullptr;
-		Node* right = nullptr;
-
-		void Clear() {
-			if (left != nullptr) {
-				left->Clear();
-			}
-			if (right != nullptr) {
-				right->Clear();
-			}
-			delete this;
-		}
-		void Output(ostream& out) {
-			if (left != nullptr) {
-				left->Output(out);
-			}
-			out << key << " " << *value << endl;
-			if (right != nullptr) {
-				right->Output(out);
-			}
-		}
-	};
-	Node* root_ = nullptr;
-	size_t count_ = 0;
-
-	Node** FindNode(const Key& key, Node** root) {
-		if (*root == nullptr || (*root)->key == key) {
+	Node** FindNode(const T& value, Node** root) {
+		if (*root == nullptr) {
 			return root;
 		}
 
-		if ((*root)->key > key)
+		if ((*root)->value > value)
 		{
-			return FindNode(key, &(*root)->left);
+			return FindNode(value, &(*root)->left);
 		}
-		else if ((*root)->key < key)
+		else if ((*root)->value < value)
 		{
-			return FindNode(key, &(*root)->right);
+			return FindNode(value, &(*root)->right);
 		}
 	}
 };
 
-TEST_CASE("Testing Queue") {
+TEST_CASE("Testing Queue class") {
+	Queue<int> queue;
 
+	REQUIRE(queue.GetSize() == 0);
+	REQUIRE(queue.IsEmpty() == true);
+
+	for (size_t i = 1; i < 11; i++)
+	{
+		queue.Enqueue(i);
+	}
+
+	SUBCASE("Testing Enqueue") {
+		CHECK(queue.GetSize() == 10);
+		CHECK(queue.IsEmpty() == false);
+	}
+
+	SUBCASE("Testing Dequeue") {
+		for (size_t i = 1; i < 11; i++)
+		{
+			CHECK(queue.Head() == i);
+			CHECK(queue.Dequeue() == true);
+		}
+
+		CHECK(queue.GetSize() == 0);
+		CHECK(queue.IsEmpty() == true);
+	}
+
+	SUBCASE("Testing Clear") {
+		queue.Clear();
+
+		CHECK(queue.GetSize() == 0);
+		CHECK(queue.IsEmpty() == true);
+	}
+
+	SUBCASE("Testing Head") {
+		queue.Clear();
+
+		CHECK_THROWS_AS(queue.Head(), underflow_error);
+		CHECK(queue.Dequeue() == false);
+		CHECK_THROWS_AS(queue.Head(), underflow_error);
+	}
+}
+
+TEST_CASE("Testing PriorityQueue class") {
+	PriorityQueue<int> queue;
+
+	REQUIRE(queue.GetCount() == 0);
+	REQUIRE(queue.IsEmpty() == true);
+
+	for (size_t i = 1; i < 11; i++)
+	{
+		queue.Enqueue(i);
+	}
+
+	SUBCASE("Testing Enqueue") {
+		CHECK(queue.GetCount() == 10);
+		CHECK(queue.IsEmpty() == false);
+	}
+
+	SUBCASE("Testing Dequeue Min") {
+		for (size_t i = 1; i < 11; i++)
+		{
+			CHECK(queue.PeekMin() == i);
+			CHECK(queue.PopMin() == true);
+		}
+
+		CHECK(queue.GetCount() == 0);
+		CHECK(queue.IsEmpty() == true);
+	}
+
+	SUBCASE("Testing Dequeue Max") {
+		for (size_t i = 10; i > 0; i--)
+		{
+			CHECK(queue.PeekMax() == i);
+			CHECK(queue.PopMax() == true);
+		}
+
+		CHECK(queue.GetCount() == 0);
+		CHECK(queue.IsEmpty() == true);
+	}
+
+	SUBCASE("Testing Clear") {
+		queue.Clear();
+
+		CHECK(queue.GetCount() == 0);
+		CHECK(queue.IsEmpty() == true);
+	}
+
+	SUBCASE("Testing Peek") {
+		queue.Clear();
+
+		CHECK_THROWS_AS(queue.PeekMax(), underflow_error);
+		CHECK(queue.PopMax() == false);
+		CHECK_THROWS_AS(queue.PeekMin(), underflow_error);
+		CHECK(queue.PopMin() == false);
+	}
 }
