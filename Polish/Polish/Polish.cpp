@@ -59,12 +59,9 @@ string ToPolish(string exp) {
 		}
 		else
 		{
-			while (exp[i] <= '9' && exp[i] >= '0')
-			{
-				output += exp[i];
-				i++;
-			}
-			output += " ";
+			output += exp[i];
+			if (!((exp[i + 1] <= '9' && exp[i + 1] >= '0') || exp[i + 1] == '.'))
+				output += " ";
 		}
 	}
 	while (!stack.empty())
@@ -126,8 +123,8 @@ double Calculate(string exp) {
 
 TEST_CASE("Testing Polish notation") {
 	
-	CHECK(ToPolish("2 + 3 * 4") == "2 3 4 * +");
-	CHECK(Calculate("2 3 4 * +") == 14);
+	CHECK(ToPolish("2.2 + 3 * 4") == "2.2 3 4 * +");
+	CHECK(Calculate("2.2 3 4 * +") == 14.2);
 
 	CHECK(ToPolish("(2 + 3) * 4") == "2 3 + 4 *");
 	CHECK(Calculate("2 3 + 4 *") == 20);
@@ -135,6 +132,9 @@ TEST_CASE("Testing Polish notation") {
 	CHECK(ToPolish("2 ^ 3 + 4") == "2 3 ^ 4 +");
 	CHECK(Calculate("2 3 ^ 4 +") == 12);
 
-	CHECK(ToPolish("2 + 3 * 4 - 5") == "2 3 4 * + 5 -");
-	CHECK(Calculate("2 3 4 * + 5 -") == 9);
+	CHECK(ToPolish("2 + 3 * 4 - 5") == "2 3 4 * 5 - +");
+	CHECK(Calculate("2 3 4 * 5 - +") == 9);
+
+	CHECK(ToPolish("3 * (4 + 5) - (6 - 2) * 4") == "3 4 5 + * 6 2 - 4 * -");
+	CHECK(Calculate("3 4 5 + * 6 2 - 4 * -") == 11);
 }
