@@ -19,24 +19,24 @@ public:
 template <size_t n>
 struct Graph
 {
-	size_t** matrix = nullptr;
+	double** matrix = nullptr;
 
 	Graph() {
-		matrix = new size_t * [n];
+		matrix = new double * [n];
 		for (size_t i = 0; i < n; i++)
 		{
-			matrix[i] = new size_t[n];
+			matrix[i] = new double[n];
 			for (size_t j = 0; j < n; j++)
 			{
 				matrix[i][j] = 0;
 			}
 		}
 	}
-	Graph(size_t m[n][n]) {
-		matrix = new size_t * [n];
+	Graph(double m[n][n]) {
+		matrix = new double * [n];
 		for (size_t i = 0; i < n; i++)
 		{
-			matrix[i] = new size_t[n];
+			matrix[i] = new double[n];
 			for (size_t j = 0; j < n; j++)
 			{
 				matrix[i][j] = m[i][j];
@@ -44,22 +44,22 @@ struct Graph
 		}
 	}
 	
-	pair<string,size_t> Path(size_t start, size_t end) {
-		size_t l[n];
+	pair<string,double> Path(size_t start, size_t end) {
+		double l[n];
 		size_t prev[n];
 		bool flags[n];
 
-		swap(start, end);
+		//swap(start, end);
 
 		for (size_t i = 0; i < n; i++)
 		{
-			l[i] = -1;
+			l[i] = numeric_limits<double>().infinity();
 			prev[i] = -1;
 			flags[i] = false;
 		}
 		l[start] = 0;
 		
-		priority_queue<pair<size_t, size_t>, vector<pair<size_t, size_t>>, PairComparer<size_t, size_t>> pq;
+		priority_queue<pair<size_t, double>, vector<pair<size_t, double>>, PairComparer<size_t, double>> pq;
 		
 		pq.push({ start,0 });
 		size_t i;
@@ -70,7 +70,7 @@ struct Graph
 			if (flags[i]) continue;
 			for (size_t j = 0; j < n; j++)
 			{
-				if ((matrix[i][j] != 0) && (matrix[i][j] + l[i] < l[j])) {
+				if ((matrix[i][j] > 0) && (matrix[i][j] + l[i] < l[j])) {
 					l[j] = matrix[i][j] + l[i];
 					prev[j] = i;
 					pq.push({ j,l[j] });
@@ -87,120 +87,82 @@ struct Graph
 			i = prev[i];
 		}
 		
-		return { path.str(), l[end] };
+		return { path.str(), l[end]};
 	}
 };
 
-TEST_CASE("Path should return the shortest path between two nodes in a weighted graph") {
-
-	// Example graph from https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-	size_t example_graph[9][9] = {
-		{0, 4, 0, 0, 0, 0, 0, 8, 0},
-		{4, 0, 8, 0, 0, 0, 0, 11, 0},
-		{0, 8, 0, 7, 0, 4, 0, 0, 2},
-		{0, 0, 7, 0, 9, 14, 0, 0, 0},
-		{0, 0, 0, 9, 0, 10, 0, 0, 0},
-		{0, 0, 4, 14, 10, 0, 2, 0, 0},
-		{0, 0, 0, 0, 0, 2, 0, 1, 6},
-		{8, 11, 0, 0, 0, 0, 1, 0, 7},
-		{0, 0, 2, 0, 0, 0, 6, 7, 0}
+TEST_CASE("Testing Dijkstra algorithm on simple graph")
+{
+	double G[8][8] = {
+					{0,4,0,0,3,0,0,0},
+					{4,0,5,0,2,0,0,0},
+					{0,5,6,5,3,1,0,0},
+					{0,0,5,0,0,0,2,7},
+					{3,2,3,0,0,6,0,0},
+					{0,0,1,0,6,8,5,0},
+					{0,0,0,2,0,5,0,4},
+					{0,0,0,7,0,0,4,2}
 	};
 
-	Graph<9> graph(example_graph);
+	Graph<8> g(G);
 
-	SUBCASE("Test shortest path from node 0 to node 4") {
-		auto [path, cost] = graph.Path(0, 4);
-		CHECK(path == "4 3 2 1 0 ");
-		CHECK(cost == 21);
-	}
+	double reachability_matrix[8][8] = {
+					{0,4,6,11,3,7,12,16},
+					{4,0,5,10,2,6,11,15},
+					{6,5,0,5,3,1,6,10},
+					{11,10,5,0,8,6,2,6},
+					{3,2,3,8,0,4,9,13},
+					{7,6,1,6,4,0,5,9},
+					{12,11,6,2,9,5,0,4},
+					{16,15,10,6,13,9,4,0}
+	};
+	pair<string, double> path;
 
-	SUBCASE("Test shortest path from node 1 to node 8") {
-		auto [path, cost] = graph.Path(1, 8);
-		CHECK(path == "8 2 1 ");
-		CHECK(cost == 10);
-	}
-
-	SUBCASE("Test shortest path from node 6 to node 7") {
-		auto [path, cost] = graph.Path(6, 7);
-		CHECK(path == "7 6 ");
-		CHECK(cost == 3);
-	}
-
-	SUBCASE("Test shortest path from node 5 to node 5") {
-		auto [path, cost] = graph.Path(5, 5);
-		CHECK(path == "5 ");
-		CHECK(cost == 0);
-	}
-}
-
-TEST_CASE("Path - basic test case") {
-	size_t matrix[5][5] = { {0, 1, 3, 4, 0},
-						   {0, 0, 2, 0, 0},
-						   {0, 0, 0, 0, 1},
-						   {0, 0, 0, 0, 3},
-						   {0, 0, 0, 0, 0} };
-	Graph<5> g(matrix);
-
-	SUBCASE("start and end are the same") {
-		auto path = g.Path(1, 1);
-		CHECK(path.first == "1 ");
-		CHECK(path.second == 0);
-	}
-
-	SUBCASE("there is no path") {
-		auto path = g.Path(1, 5);
-		CHECK(path.first == "");
-		CHECK(path.second == -1);
-	}
-
-	SUBCASE("path exists") {
-		auto path = g.Path(1, 5);
-		CHECK(path.first == "1 2 3 5 ");
-		CHECK(path.second == 6);
+	for (size_t i = 0; i < 8; i++)
+	{
+		for (size_t j = 0; j < 8; j++)
+		{
+			path = g.Path(i, j);
+			CHECK(path.second == reachability_matrix[i][j]);
+			if (i == j)
+				CHECK(path.first == (to_string(i)+" "));
+		}
 	}
 }
 
-TEST_CASE("Path - more complex test case") {
-	size_t matrix[5][5] = { {0, 2, 5, 0, 0},
-						   {2, 0, 7, 0, 1},
-						   {5, 7, 0, 1, 0},
-						   {0, 0, 1, 0, 4},
-						   {0, 1, 0, 4, 0} };
-	Graph<5> g(matrix);
+TEST_CASE("Testing Dijkstra algorithm on oriented graph")
+{
+	double G[6][6] = {
+					{0,10,20,0,0,0},
+					{0,0,0,50,10,0},
+					{0,0,0,20,33,0},
+					{0,0,0,0,20,2},
+					{0,0,0,0,0,1},
+					{0,0,0,0,0,0}
+	};
 
-	SUBCASE("start and end are the same") {
-		auto path = g.Path(3, 3);
-		CHECK(path.first == "3 ");
-		CHECK(path.second == 0);
-	}
+	Graph<6> g(G);
 
-	SUBCASE("there is no path") {
-		auto path = g.Path(4, 1);
-		CHECK(path.first == "");
-		CHECK(path.second == -1);
-	}
+	double inf = numeric_limits<double>().infinity();
 
-	SUBCASE("path exists") {
-		auto path = g.Path(1, 5);
-		CHECK(path.first == "1 2 5 ");
-		CHECK(path.second == 3);
+	double reachability_matrix[6][6] = {
+					{0,10,20,40,20,21},
+					{inf,0,inf,50,10,11},
+					{inf,inf,0,20,33,22},
+					{inf,inf,inf,0,20,2},
+					{inf,inf,inf,inf,0,1},
+					{inf,inf,inf,inf,inf,0},
+	};
+	pair<string, double> path;
+
+	for (size_t i = 0; i < 6; i++)
+	{
+		for (size_t j = 0; j < 6; j++)
+		{
+			path = g.Path(i, j);
+			CHECK(path.second == reachability_matrix[i][j]);
+			if (i == j)
+				CHECK(path.first == (to_string(i) + " "));
+		}
 	}
 }
-
-//int main()
-//{
-//	size_t G[8][8] = {
-//					{0,4,0,0,3,0,0,0},
-//					{4,0,5,0,2,0,0,0},
-//					{0,5,0,5,3,1,0,0},
-//					{0,0,5,0,0,0,2,7},
-//					{3,2,3,0,0,6,0,0},
-//					{0,0,1,0,6,0,5,0},
-//					{0,0,0,2,0,5,0,4},
-//					{0,0,0,7,0,0,4,0}
-//	};
-//
-//	Graph<8> g(G);
-//
-//	cout << g.Path(0, 7).second;
-//}
