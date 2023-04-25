@@ -39,6 +39,10 @@ struct Markov
             pos = s.find(rules_in[i], 0);
             if (pos != string::npos)
             {
+                if (rules_out[i][0] == '.') {
+                    s.replace(pos, rules_in[i].length(), rules_out[i].substr(1));
+                    break;
+                }
                 s.replace(pos, rules_in[i].length(), rules_out[i]);
                 i = -1;
             }
@@ -66,7 +70,7 @@ TEST_CASE("Testing Markov algorithm")
 TEST_CASE("Testing Markov algorithm")
 {
     string rules_in[] = { "|b","ab","b","*|","*","|c","ac","c" };
-    string rules_out[] = { "ba|","ba","","b*","c","c","c|","" };
+    string rules_out[] = { "ba|","ba","","b*","c","c","c|","." };
     Markov m(rules_in, rules_out, 8);
 
     string res = "";
